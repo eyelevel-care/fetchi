@@ -1,0 +1,36 @@
+{
+  "name": "fetchi",
+  "version": "1.0.0",
+  "description": "fetch wrapper to handle cancelation/retry/error handling",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "rm -rf lib && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/aliunco/fetchi.git"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4",
+    "eslint": "^7.23.0"
+  },
+  "keywords": [
+    "fetch",
+    "fetchi",
+    "fetch",
+    "wrapper"
+  ],
+  "author": "Ali Saeedifar <aliunco90@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aliunco/fetchi/issues"
+  },
+  "files": [
+    "/lib"
+  ],
+  "homepage": "https://github.com/aliunco/fetchi#readme"
+}

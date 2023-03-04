@@ -1,0 +1,19 @@
+{
+    "editor.formatOnSave": false,
+    "javascript.validate.enable": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "search.exclude": {
+      "**/node_modules": false,
+      "**/node_modules1": true
+    },
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true
+    },
+    "[jsonc]": {
+      "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+  }
