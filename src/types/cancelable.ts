@@ -1,4 +1,3 @@
 export interface Cancelable {
-    cancel: () => void;
+  cancel: () => void;
 }
-  

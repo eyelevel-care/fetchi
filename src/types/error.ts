@@ -1,19 +1,19 @@
-import { Config } from "./Config";
-import { ParamValue } from "./paramValue";
+import { Config } from './configs';
+import { ParamValue } from './paramValue';
 
 export class FetchiError<T = ParamValue> extends Error {
+  status: number;
 
-    status: number;
-    config: Config;
-    data: T;
+  config: Config;
 
-    constructor({data, status, config } :{data: T, status: number, config: Config}) {
-        super();
-        this.status = status;
-        this.config = config;
-        this.data = data;
+  data: T;
 
-        this.name = "FetchiResponseError";
-    }
+  constructor({ data, status, config }: { data: T; status: number; config: Config }) {
+    super();
+    this.status = status;
+    this.config = config;
+    this.data = data;
+
+    this.name = 'FetchiResponseError';
   }
-  
+}
