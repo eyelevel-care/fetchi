@@ -1,11 +1,12 @@
 import DefaultMockAdaptor from './adaptors/defaultMockAdaptor';
 import FetchAdaptor from './adaptors/fetchAdaptor';
 import { SharedGlobalVariable } from './configs/globals';
+import { mergeHeaders } from './helpers/mergeHeaders';
 import { Adaptor } from './types/adaptor';
 import { Config } from './types/configs';
 import { FetchiError } from './types/error';
 import { FetchiType } from './types/fetchi';
-import { FetchResponse } from './types/response';
+import { FetchResponse, instanceOfFetchResponse } from './types/response';
 
 function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchResponse<T>> {
   // adding possible base url
@@ -20,12 +21,8 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
   }
 
   // merging common possible headers
-  if (SharedGlobalVariable.config.headers) {
-    this.config.headers = {
-      ...this.config.headers,
-      ...SharedGlobalVariable.config.headers,
-    };
-  }
+  this.config.headers = this.config.headers ?? SharedGlobalVariable.config.headers;
+  this.config.headers = mergeHeaders(SharedGlobalVariable.config.headers, this.config.headers);
 
   // mutate by a possible interceptor
   if (SharedGlobalVariable.config.interceptors.request !== undefined) {
@@ -68,7 +65,8 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
         }),
     )
     .catch((er) => {
-      if (this.config.retryConfig !== undefined && this.config.retryConfig.count !== 0) {
+      SharedGlobalVariable.config.interceptors.response?.(er, this);
+      if (this.config.retryConfig !== undefined && this.config.retryConfig.count > 0) {
         this.cancel();
         setTimeout(() => {
           this.retry();
@@ -89,42 +87,34 @@ export class Fetchi<T> implements FetchiType<T> {
 
   #promise: Promise<FetchResponse<T>>;
 
-  #isCanceled = false;
+  #subscriptions: {
+    fullResponse?: { onfulfilled?: (value: any) => any; onrejected?: (reason: any) => any };
+    onfulfilled?: (value: any) => any;
+    onrejected?: (reason: any) => any;
+    onfinally?: (() => any) | null;
+  }[] = [];
+
+  #isCanceled = {
+    flag: false,
+  };
 
   static #numberOfPendingReqs = 0;
 
   constructor({
     config,
-    adaptor,
-    promise,
   }: {
     config: Config;
     adaptor?: Adaptor;
     promise?: Promise<FetchResponse<T> | Fetchi<any>>;
+    isCanceled?: { flag: boolean };
   }) {
     this.config = config;
     this.#adaptor =
-      adaptor ??
-      (SharedGlobalVariable.config.shouldAllUseMockAdaptor || this.config.useMock
+      SharedGlobalVariable.config.shouldAllUseMockAdaptor || this.config.useMock
         ? SharedGlobalVariable.config.mockAdaptor ?? new DefaultMockAdaptor()
-        : new FetchAdaptor());
+        : new FetchAdaptor();
     this.retry = this.retry.bind(this);
-
-    if (promise !== undefined) {
-      this.#promise = promise.then((result) => {
-        if (result instanceof Fetchi) {
-          this.config = result.config;
-          this.#adaptor = result.#adaptor;
-          this.#isCanceled = result.#isCanceled || this.#isCanceled;
-          // eslint-disable-next-line no-param-reassign
-          result.#isCanceled = this.#isCanceled;
-          return result.#promise;
-        }
-        // it can be another promise or raw value
-        return result;
-      });
-      return;
-    }
+    this.cancel = this.cancel.bind(this);
 
     this.#promise = configPromise.call(this, this.#adaptor) as Promise<FetchResponse<T>>;
 
@@ -144,95 +134,160 @@ export class Fetchi<T> implements FetchiType<T> {
       });
   }
 
+  #fullResponse<TResult1 = T, TResult2 = never>(
+    onfulfilled?: (
+      value: FetchResponse<T>,
+    ) => T | TResult1 | PromiseLike<TResult1> | FetchiType<TResult1> | null | undefined,
+    onrejected?: (reason: FetchiError) => TResult2 | PromiseLike<TResult2> | FetchiType<TResult2> | null | undefined,
+  ): FetchiType<TResult1 | TResult2> {
+    this.#subscriptions.push({
+      fullResponse: {
+        onfulfilled,
+        onrejected,
+      },
+    });
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.#promise = this.#promise.then(
+      (res) => {
+        if (this.#isCanceled.flag) {
+          return res;
+        }
+        const convertedVersion = onfulfilled?.(res);
+        if (convertedVersion instanceof Fetchi) {
+          convertedVersion.retry = this.retry; // for chained fetchies!
+        }
+        return Promise.resolve(
+          convertedVersion instanceof Fetchi ? convertedVersion.rawPromise() : convertedVersion,
+        ).then((response) => {
+          if (instanceOfFetchResponse(response)) {
+            return {
+              response,
+              staus: response.status,
+              config: response.config,
+            };
+          }
+          return {
+            response,
+            status: res.status,
+            config: res.config,
+          };
+        });
+      },
+      (er) => {
+        if (this.#isCanceled.flag) {
+          throw er;
+        }
+        if (er instanceof FetchiError) {
+          onrejected?.(er);
+        }
+        throw er;
+      },
+    );
+    // trick the typescript in order to optimize the memory usage (not creating new instance)
+    return this as FetchiType<TResult1 | TResult2>;
+  }
+
   fullResponse<TResult1 = T, TResult2 = never>(
     onfulfilled?: (
       value: FetchResponse<T>,
-    ) => (T | TResult1 | PromiseLike<TResult1> | Fetchi<TResult1>) | undefined | null,
-    onrejected?: (reason: FetchiError) => (TResult2 | PromiseLike<TResult2> | Fetchi<TResult2>) | undefined | null,
-  ): Fetchi<TResult1 | TResult2> {
-    return new Fetchi<TResult1 | TResult2>({
-      config: this.config,
-      adaptor: this.#adaptor,
-      promise: this.#promise.then(
-        (res) => {
-          if (this.#isCanceled) {
-            return res;
-          }
-          const convertedVersion = onfulfilled?.(res);
-          if (convertedVersion instanceof Fetchi) {
-            convertedVersion.retry = this.retry; // for chained fetchies!
-            return convertedVersion as Fetchi<any>;
-          }
-          return {
-            response: convertedVersion,
-            staus: res.status,
-            config: res.config,
-          };
-        },
-        (er) => {
-          if (this.#isCanceled) {
-            return er;
-          }
-          if (er instanceof FetchiError) {
-            onrejected?.(er);
-          }
-          return er;
-        },
-      ),
+    ) => T | TResult1 | PromiseLike<TResult1> | FetchiType<TResult1> | null | undefined,
+    onrejected?: (reason: FetchiError) => TResult2 | PromiseLike<TResult2> | FetchiType<TResult2> | null | undefined,
+  ): FetchiType<TResult1 | TResult2> {
+    this.#subscriptions.push({
+      onfulfilled,
+      onrejected,
     });
+    return this.#fullResponse(onfulfilled, onrejected);
   }
 
-  then<TResult1 = T, TResult2 = never>(
-    onfulfilled?: (value: T) => (T | TResult1 | PromiseLike<TResult1> | Fetchi<TResult1>) | undefined | null,
-    onrejected?: (reason: FetchiError) => (TResult2 | PromiseLike<TResult2> | Fetchi<TResult2>) | undefined | null,
-  ): Fetchi<TResult1 | TResult2> {
-    return this.fullResponse((res) => onfulfilled?.(res.response), onrejected);
+  #then<TResult1 = T, TResult2 = never | undefined>(
+    onfulfilled?: (value: T) => T | TResult1 | PromiseLike<TResult1> | FetchiType<TResult1> | null | undefined,
+    onrejected?: (reason: FetchiError) => TResult2 | PromiseLike<TResult2> | FetchiType<TResult2> | null | undefined,
+  ): FetchiType<TResult1 | TResult2> {
+    return this.#fullResponse((res) => onfulfilled?.(res.response), onrejected);
+  }
+
+  then<TResult1 = T, TResult2 = never | undefined>(
+    onfulfilled?: (value: T) => T | TResult1 | PromiseLike<TResult1> | FetchiType<TResult1> | null | undefined,
+    onrejected?: (reason: FetchiError) => TResult2 | PromiseLike<TResult2> | FetchiType<TResult2> | null | undefined,
+  ): FetchiType<TResult1 | TResult2> {
+    this.#subscriptions.push({
+      onfulfilled,
+      onrejected,
+    });
+    return this.#then(onfulfilled, onrejected);
+  }
+
+  #catch<TResult = never>(
+    onrejected?: (reason: FetchiError) => (TResult | Promise<TResult>) | undefined | null,
+  ): FetchiType<T | TResult> {
+    this.#promise = this.#promise.catch((err) => {
+      if (this.#isCanceled.flag) {
+        return Promise.reject();
+      }
+      return onrejected?.(err) ?? err;
+    });
+    return this as FetchiType<T | TResult>;
   }
 
   catch<TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null | undefined,
-  ): Fetchi<T | TResult> {
-    return new Fetchi<T | TResult>({
-      config: this.config,
-      adaptor: this.#adaptor,
-      promise: this.#promise.catch((err) => {
-        if (this.#isCanceled) {
-          return Promise.reject();
-        }
-        return onrejected?.(err) ?? err;
-      }),
+    onrejected?: (reason: FetchiError) => (TResult | Promise<TResult>) | undefined | null,
+  ): FetchiType<T | TResult> {
+    this.#subscriptions.push({
+      onrejected,
     });
+    return this.#catch(onrejected);
   }
 
   isCanceled() {
-    this.#isCanceled;
+    return this.#isCanceled.flag;
   }
 
   rawPromise(): Promise<FetchResponse<T>> {
     return this.#promise;
   }
 
-  finally(onfinally?: (() => void) | null | undefined): Fetchi<T> {
-    return new Fetchi<T>({
-      config: this.config,
-      adaptor: this.#adaptor,
-      promise: this.#promise.finally(() => {
-        if (this.#isCanceled) {
-          return;
-        }
-        onfinally?.();
-      }),
+  #finally(onfinally?: (() => void) | undefined | null): this {
+    this.#promise.finally(() => {
+      if (this.#isCanceled.flag) {
+        return;
+      }
+      onfinally?.();
     });
+    return this;
+  }
+
+  finally(onfinally?: (() => void) | undefined | null): this {
+    this.#subscriptions.push({
+      onfinally,
+    });
+    return this.#finally(onfinally);
   }
 
   cancel() {
-    this.#isCanceled = true;
+    this.#isCanceled.flag = true;
     this.#adaptor.cancel();
   }
 
   retry() {
-    this.#isCanceled = false;
+    this.#isCanceled.flag = false;
     this.#adaptor = new FetchAdaptor();
     this.#promise = configPromise.call(this, this.#adaptor) as Promise<FetchResponse<T>>;
+
+    this.#subscriptions.forEach(async (subscribe) => {
+      if (subscribe.fullResponse !== undefined) {
+        this.#fullResponse(subscribe.fullResponse.onfulfilled, subscribe.fullResponse.onrejected);
+      }
+      if (subscribe.onfulfilled !== undefined) {
+        this.#then(subscribe.onfulfilled, subscribe.onrejected);
+      }
+      if (subscribe.onfulfilled === undefined && subscribe.onrejected !== undefined) {
+        this.#catch(subscribe.onrejected);
+      }
+      if (subscribe.onfinally !== undefined) {
+        this.#finally(subscribe.onfinally);
+      }
+    });
   }
 }

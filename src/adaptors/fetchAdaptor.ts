@@ -1,3 +1,4 @@
+import { mergeHeaders } from '../helpers/mergeHeaders';
 import { Adaptor } from '../types/adaptor';
 import { Config } from '../types/configs';
 import { FetchiError } from '../types/error';
@@ -32,10 +33,9 @@ export default class FetchAdaptor implements Adaptor {
     }
 
     return fetch(requestUrl, {
-      headers: {
+      headers: mergeHeaders(config.headers ?? {}, {
         'Content-Type': 'application/json',
-        ...config.headers,
-      },
+      }),
       cache: config.cachePolicy ?? 'default',
       body,
       method: config.method ?? 'GET',
