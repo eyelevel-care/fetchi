@@ -1,5 +1,5 @@
 {
-  "name": "fetchi",
+  "name": "fetchi-request",
   "version": "1.0.0",
   "description": "fetch wrapper to handle cancelation/retry/error handling",
   "main": "lib/index.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/aliunco/fetchi.git"
+    "url": "git+ssh://git@github.com:eyelevel-care/fetchi.git"
   },
   "devDependencies": {
     "typescript": "^4.7.4",
@@ -27,10 +27,10 @@
   "author": "Ali Saeedifar <aliunco90@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/aliunco/fetchi/issues"
+    "url": "https://github.com/eyelevel-care/fetchi/issues"
   },
   "files": [
     "/lib"
   ],
-  "homepage": "https://github.com/aliunco/fetchi#readme"
+  "homepage": "https://github.com/eyelevel-care/fetchi#readme"
 }

@@ -19,9 +19,10 @@ export default class FetchAdaptor implements Adaptor {
     }
 
     let requestUrl = config.url;
-    const body = config.method !== 'GET' && config.params ? JSON.stringify(config.params) : undefined;
+    const method = config.method ?? 'GET';
+    const body = method !== 'GET' && config.params ? JSON.stringify(config.params) : undefined;
 
-    if (config.method === 'GET' && config.params !== undefined) {
+    if (method === 'GET' && config.params !== undefined) {
       requestUrl = `${requestUrl}?${Object.keys(config.params)
         .map((key) => {
           const value = config.params?.[key];
@@ -38,7 +39,7 @@ export default class FetchAdaptor implements Adaptor {
       }),
       cache: config.cachePolicy ?? 'default',
       body,
-      method: config.method ?? 'GET',
+      method: method ?? 'GET',
       signal: this.#abortCtrl.signal,
     })
       .then((result) =>

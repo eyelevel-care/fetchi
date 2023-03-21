@@ -8,5 +8,5 @@ export interface FetchResponse<R> {
 }
 
 export function instanceOfFetchResponse(object: any): object is FetchResponse<any> {
-  return 'status' in object && 'config' in object && 'response' in object;
+  return typeof object === 'object' && 'status' in object && 'config' in object && 'response' in object;
 }

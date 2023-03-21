@@ -4,6 +4,7 @@ import { Interceptors } from '../types/interceptor';
 
 type GlobalConfig = {
   baseUrl?: string;
+  timeout?: number;
   headers: Readonly<Headers>; // RequestInit['headers'] & { authorization?: string };
   interceptors: Interceptors;
   mockAdaptor?: Adaptor;
@@ -21,6 +22,7 @@ export const SharedGlobalVariable: {
 } = {
   config: {
     headers: new Headers(),
+    timeout: 10000,
     interceptors: {},
     validateStatus: (status) => status >= 200 && status < 300, // default
   },

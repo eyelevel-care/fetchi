@@ -17,8 +17,11 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
     this.config.url = `${
       this.config.url?.includes(SharedGlobalVariable.config.baseUrl) ? '' : SharedGlobalVariable.config.baseUrl
     }${this.config.url}`;
-    this.config.url.replace('//', '/'); // clean of possible double slashes
+    this.config.url = this.config.url.replace(/\/\//g, '/'); // clean of possible double slashes
   }
+
+  // config the possible timeout
+  this.config.timeout = this.config.timeout ?? SharedGlobalVariable.config.timeout;
 
   // merging common possible headers
   this.config.headers = this.config.headers ?? SharedGlobalVariable.config.headers;
@@ -161,11 +164,7 @@ export class Fetchi<T> implements FetchiType<T> {
           convertedVersion instanceof Fetchi ? convertedVersion.rawPromise() : convertedVersion,
         ).then((response) => {
           if (instanceOfFetchResponse(response)) {
-            return {
-              response,
-              staus: response.status,
-              config: response.config,
-            };
+            return response;
           }
           return {
             response,
