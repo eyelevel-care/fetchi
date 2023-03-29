@@ -112,9 +112,8 @@ export class Fetchi<T> implements FetchiType<T> {
     isCanceled?: { flag: boolean };
   }) {
     this.config = config;
-    this.#adaptor =
-      SharedGlobalVariable.config.shouldAllUseMockAdaptor || this.config.useMock
-        ? SharedGlobalVariable.config.mockAdaptor ?? new DefaultMockAdaptor()
+    this.#adaptor = (this.config.useMock ?? SharedGlobalVariable.config.useMock ?? false)
+        ? this.config.mockAdaptor ?? SharedGlobalVariable.config.mockAdaptor ?? new DefaultMockAdaptor()
         : new FetchAdaptor();
     this.retry = this.retry.bind(this);
     this.cancel = this.cancel.bind(this);

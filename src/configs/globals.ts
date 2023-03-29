@@ -8,7 +8,7 @@ type GlobalConfig = {
   headers: Readonly<Headers>; // RequestInit['headers'] & { authorization?: string };
   interceptors: Interceptors;
   mockAdaptor?: Adaptor;
-  shouldAllUseMockAdaptor?: boolean;
+  useMock?: boolean;
   validateStatus: (status: number) => boolean;
   onPendingRequestsChanged?: (isPending: boolean, numberOfRequests: number) => void;
   retryConfig?: {

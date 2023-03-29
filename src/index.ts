@@ -3,6 +3,8 @@ import { SharedGlobalVariable } from './configs/globals';
 import { Config } from './types/configs';
 import { FetchiError } from './types/error';
 import { AnyAsyncService, FetchiType } from './types/fetchi';
+import { Adaptor } from './types/adaptor';
+import { FetchResponse } from './types/response';
 
 const fetchi = <T>(config: Config) => new Fetchi<T>({ config });
 fetchi.global = SharedGlobalVariable;
@@ -53,5 +55,6 @@ fetchi.race = <T>(values: Array<Fetchi<T>>) => ({
   promise: Promise.race(values.map((item) => item.rawPromise())),
 });
 
-export type { AnyAsyncService, FetchiType };
+export type { AnyAsyncService, FetchiType, Adaptor, FetchResponse, Config };
+export { FetchiError };
 export default fetchi;
