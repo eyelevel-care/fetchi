@@ -17,7 +17,7 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
     this.config.url = `${
       this.config.url?.includes(SharedGlobalVariable.config.baseUrl) ? '' : SharedGlobalVariable.config.baseUrl
     }${this.config.url}`;
-    this.config.url = this.config.url.replace(/\/\//g, '/'); // clean of possible double slashes
+    this.config.url = this.config.url.replace(/([^:]\/)\/+/g, "$1"); // clean of possible double slashes
   }
 
   // config the possible timeout
