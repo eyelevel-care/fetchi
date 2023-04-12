@@ -314,7 +314,7 @@ req.cancel()
 req.retry()
 
 
-// 
+// race condition of two fetchi request, the second one would be canceled (ignored)
 let req = fetchi.race([
   fetchi({ url: '/first'}),
   fetchi({ url: '/second'})

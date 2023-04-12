@@ -17,7 +17,7 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
     this.config.url = `${
       this.config.url?.includes(SharedGlobalVariable.config.baseUrl) ? '' : SharedGlobalVariable.config.baseUrl
     }${this.config.url}`;
-    this.config.url = this.config.url.replace(/([^:]\/)\/+/g, "$1"); // clean of possible double slashes
+    this.config.url = this.config.url.replace(/([^:]\/)\/+/g, '$1'); // clean of possible double slashes
   }
 
   // config the possible timeout
@@ -112,7 +112,8 @@ export class Fetchi<T> implements FetchiType<T> {
     isCanceled?: { flag: boolean };
   }) {
     this.config = config;
-    this.#adaptor = (this.config.useMock ?? SharedGlobalVariable.config.useMock ?? false)
+    this.#adaptor =
+      this.config.useMock ?? SharedGlobalVariable.config.useMock ?? false
         ? this.config.mockAdaptor ?? SharedGlobalVariable.config.mockAdaptor ?? new DefaultMockAdaptor()
         : new FetchAdaptor();
     this.retry = this.retry.bind(this);

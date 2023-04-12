@@ -33,23 +33,19 @@ export default class FetchAdaptor implements Adaptor {
         .join('&')}`;
     }
 
-    const parseBodyContent = (result: Response): Promise<FetchResponse<T>> => {
-      return result
+    const parseBodyContent = (result: Response): Promise<FetchResponse<T>> =>
+      result
         .json()
         .then((response: T) => ({
           config,
           response,
           status: result.status,
         }))
-        .catch((err) => {
-          throw new FetchiError({
-            data: err,
-            status: result.status,
-            config,
-          });
-        })
-
-    }
+        .catch((err) => ({
+          config,
+          response: err,
+          status: result.status,
+        }));
 
     return fetch(requestUrl, {
       headers: mergeHeaders(config.headers ?? {}, {
@@ -62,22 +58,17 @@ export default class FetchAdaptor implements Adaptor {
     })
       .then((result) => {
         if (config.validateStatus?.(result.status)) {
-          return parseBodyContent(result)
-        } else {
-          return parseBodyContent(result)
-            .catch((_parseError) => {
-              return {} // return empty object as data in case of parsing error
-            }).then((errorData) => {
-              throw new FetchiError({
-                status: result.status,
-                data: errorData,
-                config,
-              })
-            })
+          return parseBodyContent(result);
         }
+        return parseBodyContent(result).then((errorData) => {
+          throw new FetchiError({
+            status: result.status,
+            data: errorData.response,
+            config,
+          });
+        });
       })
       .catch((err) => {
-
         if (err instanceof FetchiError) {
           throw err;
         }
