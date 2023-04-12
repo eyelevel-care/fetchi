@@ -39,6 +39,9 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
     };
   }
 
+  // configuring the validation of the request
+  this.config.validateStatus = this.config.validateStatus ?? SharedGlobalVariable.config.validateStatus;
+
   this.config.onPendingStatusChanged?.(true);
   return adaptor
     .request<T>(this.config)
@@ -57,9 +60,6 @@ function configPromise<T>(this: Fetchi<T>, adaptor: Adaptor): Promise<FetchRespo
             });
           }
 
-          if (SharedGlobalVariable.config.validateStatus(res.status)) {
-            return res;
-          }
           throw new FetchiError({
             config: this.config,
             status: res.status,

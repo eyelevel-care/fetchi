@@ -33,6 +33,24 @@ export default class FetchAdaptor implements Adaptor {
         .join('&')}`;
     }
 
+    const parseBodyContent = (result: Response): Promise<FetchResponse<T>> => {
+      return result
+        .json()
+        .then((response: T) => ({
+          config,
+          response,
+          status: result.status,
+        }))
+        .catch((err) => {
+          throw new FetchiError({
+            data: err,
+            status: result.status,
+            config,
+          });
+        })
+
+    }
+
     return fetch(requestUrl, {
       headers: mergeHeaders(config.headers ?? {}, {
         'Content-Type': 'application/json',
@@ -42,24 +60,28 @@ export default class FetchAdaptor implements Adaptor {
       method: method ?? 'GET',
       signal: this.#abortCtrl.signal,
     })
-      .then((result) =>
-        // parsing response
-        result
-          .json()
-          .then((response: T) => ({
-            config,
-            response,
-            status: result.status,
-          }))
-          .catch((err) => {
-            throw new FetchiError({
-              data: err,
-              status: result.status,
-              config,
-            });
-          }),
-      )
+      .then((result) => {
+        if (config.validateStatus?.(result.status)) {
+          return parseBodyContent(result)
+        } else {
+          return parseBodyContent(result)
+            .catch((_parseError) => {
+              return {} // return empty object as data in case of parsing error
+            }).then((errorData) => {
+              throw new FetchiError({
+                status: result.status,
+                data: errorData,
+                config,
+              })
+            })
+        }
+      })
       .catch((err) => {
+
+        if (err instanceof FetchiError) {
+          throw err;
+        }
+
         let puplishingError = err;
 
         if (this.#abortCtrl.signal.aborted && this.#abortCtrl.signal.reason === this.#CancelReason) {
