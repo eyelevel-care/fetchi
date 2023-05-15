@@ -43,7 +43,7 @@ fetchi.resolve = <T>(value: T) => {
   });
 };
 
-fetchi.reject = <T>(value: T) => {
+fetchi.reject = <T>(value: any): Fetchi<T> => {
   const dummyConfig = { url: 'no_url' };
   return new Fetchi<T>({
     config: dummyConfig,
