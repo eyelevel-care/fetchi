@@ -9,15 +9,27 @@ import { FetchResponse } from './types/response';
 const fetchi = <T>(config: Config) => new Fetchi<T>({ config });
 fetchi.global = SharedGlobalVariable;
 
-fetchi.all = <T>(values: Array<Fetchi<T>>) => ({
+fetchi.all = <T extends readonly unknown[] | []>(values: T): {
+  cancel: () => void;
+  retry: () => void;
+  promise: Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }>
+} => {
+  return {
   cancel: () => {
-    values.forEach((element) => element.cancel());
+    values.forEach((element) => element instanceof Fetchi && element.cancel());
   },
   retry: () => {
-    values.forEach((element) => element.retry());
+    values.forEach((element) => element instanceof Fetchi && element.retry());
   },
-  promise: Promise.all(values.map((item) => item.rawPromise())),
-});
+  // @ts-ignore
+  promise: Promise.all(values.map((item) => {
+    if (item instanceof Fetchi) {
+      return item.rawPromise()
+    } else {
+      return Promise.resolve(item);
+    }
+  })),
+}};
 
 fetchi.resolve = <T>(value: T) => {
   const dummyConfig = { url: 'no_url' };
