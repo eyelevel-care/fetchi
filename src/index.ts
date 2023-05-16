@@ -24,7 +24,7 @@ fetchi.all = <T extends readonly unknown[] | []>(values: T): {
   // @ts-ignore
   promise: Promise.all(values.map((item) => {
     if (item instanceof Fetchi) {
-      return item.rawPromise()
+      return item.rawPromise().then(result => result.response)
     } else {
       return Promise.resolve(item);
     }

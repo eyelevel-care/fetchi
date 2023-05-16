@@ -1,6 +1,6 @@
 {
   "name": "fetchi-request",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "fetch wrapper to handle cancelation/retry/error handling",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
