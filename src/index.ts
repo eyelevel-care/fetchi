@@ -31,6 +31,31 @@ fetchi.all = <T extends readonly unknown[] | []>(values: T): {
   })),
 }};
 
+fetchi.get = <T>(config: Omit<Config, "method">): Fetchi<T> => {
+  return fetchi({ ...config, method: "GET" })
+}
+
+fetchi.put = <T>(config: Omit<Config, "method">): Fetchi<T> => {
+  return fetchi({ ...config, method: "PUT" })
+}
+
+fetchi.delete = <T>(config: Omit<Config, "method">): Fetchi<T> => {
+  return fetchi({ ...config, method: "DELETE" })
+}
+
+fetchi.post = <T>(config: Omit<Config, "method">): Fetchi<T> => {
+  return fetchi({ ...config, method: "POST" })
+}
+
+fetchi.postForm = <T>(config: Omit<Config, "params"> & { form: FormData }): Fetchi<T> => {
+  return fetchi({
+    ...config, 
+    method: "POST", 
+    data: config.form,
+    headers: { ... config.headers, 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 fetchi.resolve = <T>(value: T) => {
   const dummyConfig = { url: 'no_url' };
   return new Fetchi<T>({

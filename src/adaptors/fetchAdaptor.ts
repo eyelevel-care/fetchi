@@ -20,7 +20,13 @@ export default class FetchAdaptor implements Adaptor {
 
     let requestUrl = config.url;
     const method = config.method ?? 'GET';
-    const body = method !== 'GET' && config.params ? JSON.stringify(config.params) : undefined;
+    const body = method !== 'GET' ? 
+                    config.data !== undefined ? 
+                        config.data 
+                        : config.params !== undefined ? 
+                            JSON.stringify(config.params) 
+                            : undefined
+                    : undefined;
 
     if (method === 'GET' && config.params !== undefined) {
       requestUrl = `${requestUrl}?${Object.keys(config.params)

@@ -7,6 +7,7 @@ type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 export type Config = {
   url: string;
   method?: Method;
+  data?: FormData | Blob;
   useMock?: boolean;
   mockAdaptor?: Adaptor;
   cachePolicy?: 'default' | 'no-cache' | 'reload' | 'force-cache' | 'only-if-cached';
